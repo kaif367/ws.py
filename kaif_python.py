@@ -37,9 +37,9 @@ def on_message(ws, message):
 
         elif message == '40':
             print("Connected to socket.io server. Sending subscription...")
-            subscribe_msg = '42["subscribe_message", {"msg_type": "subscribe_message", "name": "audchf_otc", "type": "tick"}]'
+            subscribe_msg = '42["subscribe_message", {"msg_type": "subscribe_message", "name": "AUDCHF_otc", "type": "tick"}]'
             ws.send(subscribe_msg)
-            print("Subscribed to audchf_otc")
+            print("Subscribed to AUDCHF_otc")
             threading.Thread(target=send_ping, args=(ws,), daemon=True).start()
 
         elif message == '3':
