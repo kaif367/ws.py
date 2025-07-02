@@ -13,22 +13,26 @@ def on_close(ws, close_status_code, close_msg):
 def on_open(ws):
     print("WebSocket connection established")
 
-    # Send subscription message for EURUSD_otc
-    subscribe_msg = {
-        "msg_type": "subscribe_message",
-        "name": "EURUSD_otc",
-        "type": "tick"
-    }
-    ws.send(json.dumps(subscribe_msg))
+    # Delay sending until socket.io completes handshake
+    def run(*args):
+        import time
+        time.sleep(1)
+
+        subscribe_msg = '42["subscribe_message", {"msg_type": "subscribe_message", "name": "EURUSD_otc", "type": "tick"}]'
+        ws.send(subscribe_msg)
+        print("Subscribed to EURUSD_otc")
+
+    import _thread
+    _thread.start_new_thread(run, ())
 
 if __name__ == "__main__":
-    websocket.enableTrace(True)
+    websocket.enableTrace(False)
 
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
         "Origin": "https://qxbroker.com",
         "Referer": "https://qxbroker.com",
-        "Cookie": "__cf_bm=YOUR_BROWSER_COOKIE_HERE"
+        "Cookie": "__cf_bm=Qf4B1EEjPT.iB3XlFdC5WqVFYt71kbdUNj3dhJ2UfX8-1751434744-1.0.1.1-bQ2bkscfkHvuAreqlIYAfssk1NPyAJtLz.p1HSwFUHye20cAOLts.eKyiR6O0Bz58MIGQWD3QMqMxRuBMupmXnB7Xsyjo3zqKKiVtW2lmZQ"
     }
 
     header_list = [f"{k}: {v}" for k, v in headers.items()]
