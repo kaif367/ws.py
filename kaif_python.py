@@ -1,8 +1,48 @@
 import websocket
 import json
+import threading
+import time
+
+ping_interval = 25  # default fallback
+sid = None
 
 def on_message(ws, message):
-    print("Received message:", message)
+    global ping_interval
+    if message.startswith('0'):
+        # Extract pingInterval from socket.io handshake
+        try:
+            data = json.loads(message[1:])
+            ping_interval = data.get("pingInterval", 25000) / 1000
+            print(f"Received handshake. Ping interval: {ping_interval}s")
+        except:
+            print("Handshake parsing failed.")
+
+    elif message == '40':
+        print("Connected to socket.io server. Sending subscription...")
+
+        subscribe_msg = '42["subscribe_message", {"msg_type": "subscribe_message", "name": "EURUSD_otc", "type": "tick"}]'
+        ws.send(subscribe_msg)
+        print("Subscribed to EURUSD_otc")
+
+        # Start ping thread
+        threading.Thread(target=send_ping, args=(ws,), daemon=True).start()
+
+    elif message == '3':
+        print("Received pong")
+    elif message.startswith('42'):
+        print("✅ Tick Data:", message)
+    else:
+        print("Received message:", message)
+
+def send_ping(ws):
+    while True:
+        time.sleep(ping_interval - 5)  # Send ping before timeout
+        try:
+            ws.send("2")  # This is the socket.io ping message
+            print("🔄 Sent ping")
+        except:
+            print("❌ Failed to send ping")
+            break
 
 def on_error(ws, error):
     print("Error:", error)
@@ -13,26 +53,13 @@ def on_close(ws, close_status_code, close_msg):
 def on_open(ws):
     print("WebSocket connection established")
 
-    # Delay sending until socket.io completes handshake
-    def run(*args):
-        import time
-        time.sleep(1)
-
-        subscribe_msg = '42["subscribe_message", {"msg_type": "subscribe_message", "name": "EURUSD_otc", "type": "tick"}]'
-        ws.send(subscribe_msg)
-        print("Subscribed to EURUSD_otc")
-
-    import _thread
-    _thread.start_new_thread(run, ())
-
 if __name__ == "__main__":
     websocket.enableTrace(False)
 
     headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
+        "User-Agent": "Mozilla/5.0",
         "Origin": "https://qxbroker.com",
         "Referer": "https://qxbroker.com",
-        "Cookie": "__cf_bm=Qf4B1EEjPT.iB3XlFdC5WqVFYt71kbdUNj3dhJ2UfX8-1751434744-1.0.1.1-bQ2bkscfkHvuAreqlIYAfssk1NPyAJtLz.p1HSwFUHye20cAOLts.eKyiR6O0Bz58MIGQWD3QMqMxRuBMupmXnB7Xsyjo3zqKKiVtW2lmZQ"
     }
 
     header_list = [f"{k}: {v}" for k, v in headers.items()]
